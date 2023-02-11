@@ -5,4 +5,5 @@ COPY ./jubilant-umbrella /opt/project/jubilant-umbrella
 COPY requirements.txt /opt/project/
 
 RUN pip install --no-cache-dir --upgrade -r /opt/project/requirements.txt
-CMD python3 /opt/project/jubilant-umbrella/main.py
+WORKDIR /opt/project/jubilant-umbrella
+CMD python3 main.py
