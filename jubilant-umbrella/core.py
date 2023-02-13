@@ -1,4 +1,6 @@
 import datetime
+import sys
+
 import pandas as pd
 from apscheduler.schedulers.background import BackgroundScheduler
 
@@ -7,8 +9,14 @@ takingLessonsFrame = {}
 
 
 def clear_caches():
+    global captcha
+    global takingLessonsFrame
+
     captcha = {}
     takingLessonsFrame = {}
+
+    print("[Caches Clear]", file=sys.stderr)
+
 
 
 scheduler = BackgroundScheduler()
