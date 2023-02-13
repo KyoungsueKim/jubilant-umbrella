@@ -1,4 +1,4 @@
-FROM python:3.11.1
+FROM python:3.11.2
 
 EXPOSE 8000
 COPY ./jubilant-umbrella /opt/project/jubilant-umbrella

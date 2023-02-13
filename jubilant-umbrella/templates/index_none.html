@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+
+
     <title>아주대 수강신청</title>
     <meta charset="utf-8">
     <meta name="viewport"
@@ -13,10 +15,9 @@
     <link rel="stylesheet" href="{{ url_for('static', path='css/layout.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', path='css/spmodal.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', path='css/loading.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', path='css/login.css') }}">
 
     <link rel="stylesheet" href="{{ url_for('static', path='css/crownix-viewer.min.css') }}">
-    <script language="javascript" src="{{ url_for('static', path='script/jquery.lastest.js') }}"></script>
+    <script language="javascript" src="{{ url_for('static', path='script/jquery.latest.js') }}"></script>
     <script language="javascript" src="{{ url_for('static', path='script/common.js') }}"></script>
     <script language="javascript" src="{{ url_for('static', path='script/message.js') }}"></script>
     <script language="javascript" src="{{ url_for('static', path='script/crownix-viewer.min.js') }}"></script>
@@ -114,17 +115,24 @@
         <input type="hidden" name="strUnivGrscCd" value="DS03">
 
         <div class="login">
-            <div class="form">
-                <label id="lab_login_id">원하는 서비스를 선택해주세요.</label>
+            <div id="mobile_title" class="nb-title main" style="display:none;">수강신청 로그인</div>
+
+            <div class="help-block ONLY_ENG" style="display:none;">
+                For course descriptions please visit the online directory of classes :
+                <span class="link"><a href="/aply/application_eng_courPlan.action" target="COUR_PLAN">Website for Course Description</a></span>
                 <br>
-                <div class="login-button">
-                    <button type="button" id="btnNotify" style="cursor: pointer;">여석 알림 서비스</button>
-                    <button type="button" id="btnPractice" style="cursor: pointer;">수강신청 연습 모드</button>
-                </div>
+                You can also check the course description, list and additional information on this website.
+                <span class="link">
+                	<a href="https://oia.ajou.ac.kr/oia/incoming/english-course.do" target="COUR_PLAN">
+                	https://oia.ajou.ac.kr/oia/incoming/english-course.do
+                	</a>
+                </span>
+                <br>
+                <span class="gray">This online course registration page will be ONLY acailable for application period.</span>
             </div>
             <div class="help-block NOT_ONLY_ENG">
-                * 통합홈페이지의 로그인ID 및 비밀번호를 입력하세요.<br>
-                * 관련안내 : <span class="red">로그인 후 30분동안 어떤작업도 하지 않으면 재로그인 해야 합니다.(로그인유지시간 : 30분).</span>
+                * 아주대학교 수강신청 연습용 사이트입니다. 매 10분마다 5분간 오픈됩니다. <br>
+                * 주의 : <span class="red">아주대학교에서 공식으로 만든 사이트가 아닙니다. (문의 사항: marmot-pistes0e@icloud.com)</span>
             </div>
         </div>
     </form>

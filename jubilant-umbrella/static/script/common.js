@@ -250,17 +250,7 @@ function goPages(pageFg) {
 	if(nvl(pageFg) == "") return;
 	loading(true);
 	
-	if(pageFg == "bord"){//공지사항
-		f.action = contextPath+"/bord/index.action";
-	}else if(pageFg == "aply"){//수강신청-수강신청 페이지를 오픈한다.
-		f.action = contextPath+"/aply/index.action";
-	}else if(pageFg == "time"){//개인시간표
-		f.action = contextPath+"/time/index.action";
-	}else if(pageFg == "revs"){//조정강의정보
-		f.action = contextPath+"/revs/index.action";
-	}else{
-		return;
-	}
+	return;
 	
 	f.method = "post";
 	f.submit();
@@ -520,7 +510,7 @@ document.onkeyup=KeyEventHandle;
 function getCaptchaImg(){ 
 	$("#securityNumber").val(''); //입력값 초기화
 	var rand = Math.random(); 
-	var url = contextPath+'/com/cmmn/user/captchaImg.action?rand='+rand; 	
+	var url = contextPath+'/captchaImg?rand='+rand;
 	$("#captchaImg").attr("src", url); //보안이미지 초기화
 }
 //보안이미지 오디오로 불러오기
@@ -601,7 +591,7 @@ var dialog = (function(dialog){
 	//보안이미지 화면 레이아웃
 	var makeImgLayout = function(){
 		var rand = Math.random(); 
-		var url = contextPath+'/com/cmmn/user/captchaImg.action?rand='+rand;
+		var url = '/captchaAnswer?rand=' + rand;
 		var header = '<div class="sp-modal-header">';
 		header += '<section class="nb-title page"><h2><em>'+message.get("dialog_title_security")+'</em></h2></section>';
 		header += '<span class="sp-modal-close" id="btnClosePopup" onclick="dialog.close(\''+opts["dialogId"]+'\')"></span>';
@@ -609,7 +599,7 @@ var dialog = (function(dialog){
 		var body = '<div class="sp-modal-body" style="padding-top:5px;padding-bottom:5px;">';
 			body += '	 <div class="help-block blue">';
 			body += '	 <img id="captchaImg" title="'+message.get("dialog_security_number")+'" src="'+ url +'" alt="'+message.get("dialog_security_number")+'"/>';
-			body += '	 <img id="captchaRefresh" src="'+contextPath+'/images/refresh_icon.png" alt="refresh" onclick="dialog.refresh(\''+opts["dialogId"]+'\')" style="width:50px;height:35px;cursor:pointer">';
+			body += '	 <img id="captchaRefresh" src="/static/images/refresh_icon.png" alt="refresh" onclick="dialog.refresh(\''+opts["dialogId"]+'\')" style="width:50px;height:35px;cursor:pointer">';
 			body += '	 <div id="captchaAudio" style="display:none"></div>';
 			body += '	 </div>';
 			body += '    <div class="da-row-form">';
@@ -710,7 +700,7 @@ var dialog = (function(dialog){
 		dialog.beforeClose = function(){
 			var resultFlag = true;
 			$.ajax({
-	            url:contextPath+'/com/cmmn/user/captchaAnswer.action',
+	            url:contextPath+'/captchaAnswer',
 	            type:'post',
 	            data:{answer:$("#securityNumber").val()},
 	            async: false,
