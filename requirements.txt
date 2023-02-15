@@ -6,3 +6,4 @@ pandas
 openpyxl
 pydantic
 apscheduler
+httpx
