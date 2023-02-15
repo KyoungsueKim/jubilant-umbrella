@@ -8,25 +8,38 @@ import uuid
 import uvicorn
 import pandas as pd
 
-from core import *
+from core import clear_caches, is_open_time, get_taking_lesson
 from fastapi.staticfiles import StaticFiles
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, FileResponse
 
-MAX_CREDIT = "24"
-GRADE = "1"
-STUDENT_DEPARTMENT = "무화과"
-STUDENT_NUMBER = "202320001"
-NAME = "홍길동"
+class Main:
+    MAX_CREDIT = "24"
+    GRADE = "1"
+    STUDENT_DEPARTMENT = "무화과"
+    STUDENT_NUMBER = "202320001"
+    NAME = "홍길동"
 
-app = FastAPI()
+    app: FastAPI
+    db = pd.read_excel('static/db/db.xlsx', engine='openpyxl', header=1, usecols="D, E, G, I, J, Q",
+                       names=['sbjName', 'sbjCode', 'profName', 'credit', 'hours', 'time'])
+    captcha = {}
+    takingLessonsFrame = {}
+
+    def __init__(self, app, db, captcha, takingLessonsFrame):
+        self.app = app
+        self.db = db
+        self.captcha = captcha
+        self.takingLessonsFrame = takingLessonsFrame
+
+
+Main.app = app = FastAPI()
 templates = Jinja2Templates(directory="templates")
-app.mount("/static", StaticFiles(directory="static"), name="static")
-db = pd.read_excel('static/db/db.xlsx', engine='openpyxl', header=1, usecols="D, E, G, I, J, Q", names=['sbjName', 'sbjCode', 'profName', 'credit', 'hours', 'time'])
+Main.app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
-@app.middleware("http")
+@Main.app.middleware("http")
 async def add_client_id(request: Request, call_next):
     client_id: str = request.cookies.get("client_id")
 
@@ -40,7 +53,7 @@ async def add_client_id(request: Request, call_next):
     return response
 
 
-@app.get("/", response_class=HTMLResponse)
+@Main.app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
     """
     메인 페이지
@@ -48,10 +61,11 @@ async def index(request: Request):
     :return: HtmlTemplate
     """
     html: str = "index.html" if is_open_time() else "index_none.html"
-    return templates.TemplateResponse(html, {"request": request, "name": NAME, "stdNumber": STUDENT_NUMBER, "stdDept": STUDENT_DEPARTMENT, "grade": GRADE, "maxCredits": MAX_CREDIT})
+    html: str = "index.html"
+    return templates.TemplateResponse(html, {"request": request, "name": Main.NAME, "stdNumber": Main.STUDENT_NUMBER, "stdDept": Main.STUDENT_DEPARTMENT, "grade": Main.GRADE, "maxCredits": Main.MAX_CREDIT})
 
 
-@app.post("/saveTlsnNoAply.ajax")
+@Main.app.post("/saveTlsnNoAply.ajax")
 async def saveTlsnNoAply(request: Request):
     """
     과목 수강 신청.
@@ -64,33 +78,36 @@ async def saveTlsnNoAply(request: Request):
     taking_lessons = get_taking_lesson(client_id)
 
     # 인증 번호 맞는지 확인.
-    if captcha[client_id] != data['securityNumber']:
+    if Main.captcha[client_id] != data['securityNumber']:
         return {"RESULT_MESG": "인증번호를 정확히 입력하세요", "MESSAGE_CODE": -1}
 
     # 입력된 과목 코드로부터 슬롯 하나 때와서 slot 변수에 저장
     sbjCode: str = data['strTlsnNo'].upper()
-    slot = db.loc[db['sbjCode'] == sbjCode]
+    slot = Main.db.loc[Main.db['sbjCode'] == sbjCode]
 
     # 과목 이름 추출. 만약 검색된 이름이 없다면
     sbjName = slot['sbjName'].values[0] if slot['sbjName'].shape[0] == 1 else None
     if sbjName is None:
         return {"RESULT_MESG": "과목코드가 올바르지 않습니다.", "MESSAGE_CODE": -1}
 
-    # 최대 학점 제한을 넘은 경우
-    elif taking_lessons['credit'].sum() + slot['credit'].sum() > int(MAX_CREDIT):
-        return {"RESULT_MESG": "최대 이수 학점을 초과하였습니다.", "MESSAGE_CODE": -1}
+    # # 최대 학점 제한을 넘은 경우
+    # elif taking_lessons['credit'].sum() + slot['credit'].sum() > int(Main.MAX_CREDIT):
+    #     return {"RESULT_MESG": "최대 이수 학점을 초과하였습니다.", "MESSAGE_CODE": -1}
 
     # 해당 과목이 이미 수강중인 과목이라면
     elif taking_lessons.loc[taking_lessons['sbjName'] == sbjName].shape[0] > 0:
         return {"RESULT_MESG": "이미 수강중인 과목입니다.", "MESSAGE_CODE": -1}
 
     else:
-        taking_lessons = pd.concat([taking_lessons, slot])
-        takingLessonsFrame[client_id] = taking_lessons
+        current_credit = taking_lessons['credit'].sum() + slot['credit'].sum()
+
+        # 최대 학점 제한을 넘은 경우 리스트에 추가는 안함.
+        taking_lessons = pd.concat([taking_lessons, slot]) if current_credit < int(Main.MAX_CREDIT) else taking_lessons
+        Main.takingLessonsFrame[client_id] = taking_lessons
         return {"RESULT_MESG": f"[{sbjName}]: 신청완료되었습니다.", "MESSAGE_CODE": 1}
 
 
-@app.post("/findTakingLessonInfo.ajax")
+@Main.app.post("/findTakingLessonInfo.ajax")
 async def findTakingLessonInfo(request: Request):
     client_id: str = request.cookies['client_id']
     taking_lessons = get_taking_lesson(client_id)
@@ -138,7 +155,7 @@ async def findTakingLessonInfo(request: Request):
     "loginStatusMsg": ""}
 
 
-@app.post("/deleteOpenLectureReg.ajax")
+@Main.app.post("/deleteOpenLectureReg.ajax")
 async def deleteOpenLectureReg(request: Request):
     client_id: str = request.cookies['client_id']
     body: bytes = (await request.body()).decode()
@@ -155,27 +172,27 @@ async def deleteOpenLectureReg(request: Request):
     else:
         return {"RESULT_MESG": f"과목이 존재하지 않습니다.", "MESSAGE_CODE": -1}
 
-@app.get("/captchaAnswer")
+@Main.app.get("/captchaAnswer")
 async def captchaAnswer(request: Request):
     return await captchaImg(request)
 
 
-@app.post("/captchaAnswer")
+@Main.app.post("/captchaAnswer")
 async def captchaAnswer(request: Request):
     client_id = request.cookies['client_id']
     body = (await request.body()).decode()
     parameters = dict(x.split("=") for x in body.split("&"))
     answer = parameters.get("answer")
-    return '200' if captcha[client_id] == answer else '300'
+    return '200' if Main.captcha[client_id] == answer else '300'
 
 
-@app.get("/captchaImg")
+@Main.app.get("/captchaImg")
 async def captchaImg(request: Request):
     try:
         img_list = glob.glob('static/images/captcha/*.png')
         img_path = random.sample(img_list, 1)
         number = os.path.basename(img_path[0])[0:4]
-        captcha[request.cookies['client_id']] = number
+        Main.captcha[request.cookies['client_id']] = number
 
         return FileResponse(img_path[0])
     except Exception as e:

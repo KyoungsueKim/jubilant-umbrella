@@ -2,28 +2,14 @@ import datetime
 import sys
 
 import pandas as pd
-from apscheduler.schedulers.background import BackgroundScheduler
-
-captcha = {}
-takingLessonsFrame = {}
 
 
 def clear_caches():
-    global captcha
-    global takingLessonsFrame
-
-    captcha = {}
-    takingLessonsFrame = {}
+    from main import Main
+    Main.captcha.clear()
+    Main.takingLessonsFrame.clear()
 
     print("[Caches Clear]", file=sys.stderr)
-
-
-
-scheduler = BackgroundScheduler()
-scheduler.add_job(func=clear_caches, trigger="interval", minutes=5,
-                  start_date=datetime.datetime.now() + datetime.timedelta(minutes=5),
-                  end_date=datetime.datetime(2099, 12, 31))
-scheduler.start()
 
 
 def is_open_time():
@@ -34,5 +20,7 @@ def is_open_time():
 
 
 def get_taking_lesson(client_id: str):
-    return takingLessonsFrame[client_id] if client_id in takingLessonsFrame.keys() else pd.DataFrame(
+    from main import Main
+
+    return Main.takingLessonsFrame[client_id] if client_id in Main.takingLessonsFrame.keys() else pd.DataFrame(
         columns=['sbjName', 'sbjCode', 'profName', 'credit', 'hours', 'time'])
