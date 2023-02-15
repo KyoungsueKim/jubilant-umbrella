@@ -1,11 +1,11 @@
-import datetime
+from datetime import datetime
 import sys
 
 import pandas as pd
 
 
 def is_open_time():
-    current_time = datetime.datetime.now().minute
+    current_time = datetime.now().minute
     if 0 <= current_time % 10 < 5:
         return True
     return False

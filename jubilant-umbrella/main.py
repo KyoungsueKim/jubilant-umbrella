@@ -48,6 +48,7 @@ async def index(request: Request):
     :param request:
     :return: HtmlTemplate
     """
+    # html = "index.html"
     html: str = "index.html" if is_open_time() else "index_none.html"
     Main.is_clear = False if is_open_time() else Main.is_clear
     return templates.TemplateResponse(html, {"request": request, "name": Main.NAME, "stdNumber": Main.STUDENT_NUMBER, "stdDept": Main.STUDENT_DEPARTMENT, "grade": Main.GRADE, "maxCredits": Main.MAX_CREDIT})
@@ -122,7 +123,7 @@ async def findTakingLessonInfo(request: Request):
         CLSS_NO = '1'
         SBJT_KOR_NM = taking_lessons['sbjName'].values[i]
         TLSN_NO = taking_lessons['sbjCode'].values[i]
-        MA_LECTURER_KOR_NM = taking_lessons['profName'].values[i] if not math.isnan(taking_lessons['profName'].values[i]) else ''
+        MA_LECTURER_KOR_NM = taking_lessons['profName'].values[i] if not isinstance(taking_lessons['profName'].values[i], float) else ''
         PNT = taking_lessons['credit'].values[i]
         TM = taking_lessons['hours'].values[i]
         LT_TM_NM = taking_lessons['time'].values[i]
