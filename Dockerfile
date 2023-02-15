@@ -6,4 +6,4 @@ COPY requirements.txt /opt/project/
 
 RUN pip install --no-cache-dir --upgrade -r /opt/project/requirements.txt
 WORKDIR /opt/project/jubilant-umbrella
-CMD python3 main.py
+CMD python3 -X faulthandler main.py

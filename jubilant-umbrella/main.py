@@ -85,15 +85,15 @@ async def proxy(request: Request):
             data=await request.body()
         )
 
-        import json
+    import json
 
-        response_content_dict = json.loads(response.content.decode())
-        response_content_dict['loginStatus'] = True
-        del response_content_dict['strTlsnScheValidChkMsg']
-        new_response_content = json.dumps(response_content_dict).encode()
+    response_content_dict = json.loads(response.content.decode())
+    response_content_dict['loginStatus'] = True
+    del response_content_dict['strTlsnScheValidChkMsg']
+    new_response_content = json.dumps(response_content_dict).encode()
 
-        response = Response(content=new_response_content, headers=response.headers, status_code=response.status_code)
-        return response
+    response = Response(content=new_response_content, headers=response.headers, status_code=response.status_code)
+    return response
 
 
 @Main.app.get("/", response_class=HTMLResponse)
