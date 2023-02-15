@@ -11,6 +11,14 @@ def is_open_time():
     return False
 
 
+def clear_caches():
+    from main import Main
+
+    Main.captcha.clear()
+    Main.takingLessonsFrame.clear()
+    print(f"[Caches Clear] {datetime.now()}")
+
+
 def get_taking_lesson(client_id: str):
     from main import Main
 

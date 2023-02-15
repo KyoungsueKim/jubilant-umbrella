@@ -1,5 +1,6 @@
 import glob
 import json
+import math
 import os.path
 import random
 import re
@@ -10,12 +11,12 @@ import httpx
 import uvicorn
 import pandas as pd
 import logging
-
-from core import is_open_time, get_taking_lesson
+from apscheduler.schedulers.background import BackgroundScheduler
+from core import is_open_time, get_taking_lesson, clear_caches
 from fastapi.staticfiles import StaticFiles
 from fastapi import FastAPI, Request, HTTPException, Response
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
 
 class Main:
     MAX_CREDIT = "24"
@@ -27,75 +28,17 @@ class Main:
     app: FastAPI
     db = pd.read_excel('static/db/db.xlsx', engine='openpyxl', header=1, usecols="D, E, G, I, J, Q",
                        names=['sbjName', 'sbjCode', 'profName', 'credit', 'hours', 'time'])
+    scheduler = BackgroundScheduler()
     captcha = {}
     takingLessonsFrame = {}
     is_clear = True
-
-    def __init__(self, app, db, captcha, takingLessonsFrame, is_clear):
-        self.app = app
-        self.db = db
-        self.captcha = captcha
-        self.takingLessonsFrame = takingLessonsFrame
-        self.is_clear = is_clear
-
 
 Main.app = app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 Main.app.mount("/static", StaticFiles(directory="static"), name="static")
 logger = logging.getLogger("uvicorn.access")
-
-
-@Main.app.middleware("http")
-async def add_client_id(request: Request, call_next):
-    client_id: str = request.cookies.get("client_id")
-
-    if client_id is None:
-        client_id = str(uuid.uuid4())
-        response = await call_next(request)
-        response.set_cookie(key="client_id", value=client_id)
-        return response
-    request.client_id = client_id
-    response = await call_next(request)
-    return response
-
-@Main.app.middleware("http")
-async def clear_caches(request: Request, call_next):
-    if (is_open_time() is False) and (Main.is_clear is False):
-        Main.captcha.clear()
-        Main.takingLessonsFrame.clear()
-        print("[Caches Clear]", file=sys.stderr)
-        Main.is_clear = True
-
-    elif is_open_time() is True:
-        Main.is_clear = False
-
-    response = await call_next(request)
-    return response
-
-
-@app.post('/proxy')
-async def proxy(request: Request):
-    url = request.query_params['url']
-    headers = dict(request.headers)
-    headers.pop('host', None)
-    headers.pop('content-length', None)
-    async with httpx.AsyncClient() as client:
-        response = await client.request(
-            method=request.method,
-            url=url,
-            headers=headers,
-            data=await request.body()
-        )
-
-    import json
-
-    response_content_dict = json.loads(response.content.decode())
-    response_content_dict['loginStatus'] = True
-    del response_content_dict['strTlsnScheValidChkMsg']
-    new_response_content = json.dumps(response_content_dict).encode()
-
-    response = Response(content=new_response_content, headers=response.headers, status_code=response.status_code)
-    return response
+Main.scheduler.add_job(clear_caches, "cron", minute="5,15,25,35,45,55")
+Main.scheduler.start()
 
 
 @Main.app.get("/", response_class=HTMLResponse)
@@ -106,6 +49,7 @@ async def index(request: Request):
     :return: HtmlTemplate
     """
     html: str = "index.html" if is_open_time() else "index_none.html"
+    Main.is_clear = False if is_open_time() else Main.is_clear
     return templates.TemplateResponse(html, {"request": request, "name": Main.NAME, "stdNumber": Main.STUDENT_NUMBER, "stdDept": Main.STUDENT_DEPARTMENT, "grade": Main.GRADE, "maxCredits": Main.MAX_CREDIT})
 
 
@@ -151,6 +95,16 @@ async def saveTlsnNoAply(request: Request):
         return {"RESULT_MESG": f"[{sbjName}]: 신청완료되었습니다.", "MESSAGE_CODE": 1}
 
 
+# @Main.app.post("/saveOpenLectureReg.ajax")
+# async def saveOpenLectureReg(request: Request):
+#     """
+#     과목 수강 신청 2 (교과목 조회에서 신청)
+#     :param request:
+#     :return:
+#     """
+#     return await saveTlsnNoAply(request)
+
+
 @Main.app.post("/findTakingLessonInfo.ajax")
 async def findTakingLessonInfo(request: Request):
     """
@@ -168,7 +122,7 @@ async def findTakingLessonInfo(request: Request):
         CLSS_NO = '1'
         SBJT_KOR_NM = taking_lessons['sbjName'].values[i]
         TLSN_NO = taking_lessons['sbjCode'].values[i]
-        MA_LECTURER_KOR_NM = taking_lessons['profName'].values[i]
+        MA_LECTURER_KOR_NM = taking_lessons['profName'].values[i] if not math.isnan(taking_lessons['profName'].values[i]) else ''
         PNT = taking_lessons['credit'].values[i]
         TM = taking_lessons['hours'].values[i]
         LT_TM_NM = taking_lessons['time'].values[i]
@@ -251,6 +205,45 @@ async def captchaImg(request: Request):
         return FileResponse(img_path[0])
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@Main.app.middleware("http")
+async def add_client_id(request: Request, call_next):
+    client_id: str = request.cookies.get("client_id")
+
+    if client_id is None:
+        client_id = str(uuid.uuid4())
+        response = await call_next(request)
+        response.set_cookie(key="client_id", value=client_id)
+        return response
+    request.client_id = client_id
+    response = await call_next(request)
+    return response
+
+
+@app.post('/proxy')
+async def proxy(request: Request):
+    url = request.query_params['url']
+    headers = dict(request.headers)
+    headers.pop('host', None)
+    headers.pop('content-length', None)
+    async with httpx.AsyncClient() as client:
+        response = await client.request(
+            method=request.method,
+            url=url,
+            headers=headers,
+            data=await request.body()
+        )
+
+    import json
+
+    response_content_dict = json.loads(response.content.decode())
+    response_content_dict['loginStatus'] = True
+    del response_content_dict['strTlsnScheValidChkMsg']
+    new_response_content = json.dumps(response_content_dict).encode()
+
+    response = Response(content=new_response_content, headers=response.headers, status_code=response.status_code)
+    return response
 
 
 if __name__ == '__main__':
