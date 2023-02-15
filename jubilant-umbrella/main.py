@@ -3,14 +3,16 @@ import json
 import os.path
 import random
 import re
+import sys
 import uuid
 
+import httpx
 import uvicorn
 import pandas as pd
 
-from core import clear_caches, is_open_time, get_taking_lesson
+from core import is_open_time, get_taking_lesson
 from fastapi.staticfiles import StaticFiles
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request, HTTPException, Response
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, FileResponse
 
@@ -26,12 +28,14 @@ class Main:
                        names=['sbjName', 'sbjCode', 'profName', 'credit', 'hours', 'time'])
     captcha = {}
     takingLessonsFrame = {}
+    is_clear = True
 
-    def __init__(self, app, db, captcha, takingLessonsFrame):
+    def __init__(self, app, db, captcha, takingLessonsFrame, is_clear):
         self.app = app
         self.db = db
         self.captcha = captcha
         self.takingLessonsFrame = takingLessonsFrame
+        self.is_clear = is_clear
 
 
 Main.app = app = FastAPI()
@@ -52,6 +56,45 @@ async def add_client_id(request: Request, call_next):
     response = await call_next(request)
     return response
 
+@Main.app.middleware("http")
+async def clear_caches(request: Request, call_next):
+    if (is_open_time() is False) and (Main.is_clear is False):
+        Main.captcha.clear()
+        Main.takingLessonsFrame.clear()
+        print("[Caches Clear]", file=sys.stderr)
+        Main.is_clear = True
+
+    elif is_open_time() is True:
+        Main.is_clear = False
+
+    response = await call_next(request)
+    return response
+
+
+@app.post('/proxy')
+async def proxy(request: Request):
+    url = request.query_params['url']
+    headers = dict(request.headers)
+    headers.pop('host', None)
+    headers.pop('content-length', None)
+    async with httpx.AsyncClient() as client:
+        response = await client.request(
+            method=request.method,
+            url=url,
+            headers=headers,
+            data=await request.body()
+        )
+
+        import json
+
+        response_content_dict = json.loads(response.content.decode())
+        response_content_dict['loginStatus'] = True
+        del response_content_dict['strTlsnScheValidChkMsg']
+        new_response_content = json.dumps(response_content_dict).encode()
+
+        response = Response(content=new_response_content, headers=response.headers, status_code=response.status_code)
+        return response
+
 
 @Main.app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
@@ -61,7 +104,6 @@ async def index(request: Request):
     :return: HtmlTemplate
     """
     html: str = "index.html" if is_open_time() else "index_none.html"
-    html: str = "index.html"
     return templates.TemplateResponse(html, {"request": request, "name": Main.NAME, "stdNumber": Main.STUDENT_NUMBER, "stdDept": Main.STUDENT_DEPARTMENT, "grade": Main.GRADE, "maxCredits": Main.MAX_CREDIT})
 
 

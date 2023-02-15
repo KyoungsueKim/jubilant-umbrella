@@ -289,7 +289,7 @@ function findOpenLecture(){
 
 	var param = $("form[name=application]").formSerializeObject();
 
-	commonAjax("http://sugang.ajou.ac.kr/uni/tlsn/aply/findOpenLecture.ajax", param, function(data){
+	commonAjax("http://localhost/proxy?url=http://sugang.ajou.ac.kr/uni/tlsn/aply/findOpenLecture.ajax", param, function(data){
 
 		if(!dataNullCheck(data["RESULT_MESG"])){
 			dialog.alert(data["RESULT_MESG"]);

@@ -4,14 +4,6 @@ import sys
 import pandas as pd
 
 
-def clear_caches():
-    from main import Main
-    Main.captcha.clear()
-    Main.takingLessonsFrame.clear()
-
-    print("[Caches Clear]", file=sys.stderr)
-
-
 def is_open_time():
     current_time = datetime.datetime.now().minute
     if 0 <= current_time % 10 < 5:
