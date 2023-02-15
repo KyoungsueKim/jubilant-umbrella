@@ -9,6 +9,7 @@ import uuid
 import httpx
 import uvicorn
 import pandas as pd
+import logging
 
 from core import is_open_time, get_taking_lesson
 from fastapi.staticfiles import StaticFiles
@@ -41,6 +42,7 @@ class Main:
 Main.app = app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 Main.app.mount("/static", StaticFiles(directory="static"), name="static")
+logger = logging.getLogger("uvicorn.access")
 
 
 @Main.app.middleware("http")
@@ -252,4 +254,4 @@ async def captchaImg(request: Request):
 
 
 if __name__ == '__main__':
-    uvicorn.run("main:app", host="0.0.0.0", port=80)
+    uvicorn.run("main:app", host="0.0.0.0", port=56765)
