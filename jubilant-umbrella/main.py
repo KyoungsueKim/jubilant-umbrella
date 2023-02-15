@@ -109,6 +109,11 @@ async def saveTlsnNoAply(request: Request):
 
 @Main.app.post("/findTakingLessonInfo.ajax")
 async def findTakingLessonInfo(request: Request):
+    """
+    수강 신청 리스트 가져오기.
+    :param request:
+    :return:
+    """
     client_id: str = request.cookies['client_id']
     taking_lessons = get_taking_lesson(client_id)
 
@@ -157,6 +162,11 @@ async def findTakingLessonInfo(request: Request):
 
 @Main.app.post("/deleteOpenLectureReg.ajax")
 async def deleteOpenLectureReg(request: Request):
+    """
+    수강신청 내역 삭제.
+    :param request:
+    :return:
+    """
     client_id: str = request.cookies['client_id']
     body: bytes = (await request.body()).decode()
     data = json.loads(body)
