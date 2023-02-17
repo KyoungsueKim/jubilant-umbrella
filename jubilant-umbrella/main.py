@@ -48,8 +48,8 @@ async def index(request: Request):
     :param request:
     :return: HtmlTemplate
     """
-    # html = "index.html"
-    html: str = "index.html" if is_open_time() else "index_none.html"
+    html = "index.html"
+    # html: str = "index.html" if is_open_time() else "index_none.html"
     Main.is_clear = False if is_open_time() else Main.is_clear
     return templates.TemplateResponse(html, {"request": request, "name": Main.NAME, "stdNumber": Main.STUDENT_NUMBER, "stdDept": Main.STUDENT_DEPARTMENT, "grade": Main.GRADE, "maxCredits": Main.MAX_CREDIT})
 
